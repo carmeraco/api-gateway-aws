@@ -148,11 +148,10 @@ function AWSIAMCredentials:fetchSecurityCredentialsFromAWS()
         poolsize = 50
     }
 
-    ngx.log(ngx.DEBUG, "AWS Response:" .. tostring(body))
+    if (code == ngx.HTTP_OK and body ~= nil) then
+        ngx.log(ngx.DEBUG, "AWS Response:" .. tostring(body))
+        local aws_response = cjson.decode(body)
 
-    local aws_response = cjson.decode(body)
-
-    if (aws_response["Code"] == "Success") then
         -- set the values and the expiry time
         cache.AccessKeyId = aws_response["AccessKeyId"]
         cache.SecretAccessKey = aws_response["SecretAccessKey"]

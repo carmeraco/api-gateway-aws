@@ -213,7 +213,8 @@ function _M:getAuthorizationHeader(http_method, path, uri_args, body, host_overr
     credentials.aws_endpoint = self:getAWSHost()
     credentials.aws_region = self.aws_region
     credentials.aws_service = self.aws_service
-    local awsAuth = AWSV4S:new(credentials, self.doubleUrlEncode)
+    credentials.doubleUrlEncode = self.doubleUrlEncode
+    local awsAuth = AWSV4S:new(credentials)
     local authorization, payload_hash = awsAuth:getAuthorizationHeader(http_method,
         path, -- "/"
         uri_args, -- ngx.req.get_uri_args()

@@ -9,7 +9,7 @@ use Cwd qw(cwd);
 
 repeat_each(1);
 
-plan tests => repeat_each() * (blocks() * 4) - 1;
+plan tests => repeat_each() * blocks() * 3;
 
 my $pwd = cwd();
 
@@ -75,6 +75,28 @@ X-Test: test
 POST /test-signature?Subject=nginx:test!@$&TopicArn=arn:aws:sns:us-east-1:492299007544:apiplatform-dev-ue1-topic-analytics&Message=hello_from_nginx,with_comma!&Action=Publish&Subject1=nginx:test
 --- response_body eval
 ["Action=Publish&Message=hello_from_nginx%2Cwith_comma%21&Subject=nginx%3Atest%21%40%24&Subject1=nginx%3Atest&TopicArn=arn%3Aaws%3Asns%3Aus-east-1%3A492299007544%3Aapiplatform-dev-ue1-topic-analytics"]
+--- no_error_log
+[error]
+--- error_code: 200
+
+=== TEST 2: test request args with multiple occurences of the same key
+--- http_config eval: $::HttpConfig
+--- config
+        location /test-signature {
+
+            content_by_lua '
+                local AWSV4S = require "api-gateway.aws.AwsV4Signature"
+                local awsAuth =  AWSV4S:new()
+                ngx.print(awsAuth:formatQueryString(ngx.req.get_uri_args()))
+            ';
+        }
+
+--- more_headers
+X-Test: test
+--- request
+GET /test-signature?key1=value1&key2=def&key2=abc
+--- response_body eval
+["key1=value1&key2=def&key2=abc"]
 --- no_error_log
 [error]
 --- error_code: 200

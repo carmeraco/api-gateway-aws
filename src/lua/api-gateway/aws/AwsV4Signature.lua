@@ -72,7 +72,7 @@ local function get_hashed_canonical_request(method, uri, querystring, headers, r
     hash = hash .. canonicalHeaders .. "\n"
             .. signedHeaders .. "\n"
 
-    requestPayloadHash = _hash(requestPayload or "")
+    local requestPayloadHash = _hash(requestPayload or "")
     hash = hash .. requestPayloadHash
 
     ngx.log(ngx.DEBUG, "Canonical String to Sign is:\n" .. hash)
@@ -148,7 +148,15 @@ function HmacAuthV4Handler:formatQueryString(uri_args)
     local iterator = getTableIterator(uri_args, urlParameterKeys)
 
     for param_key, param_value in iterator do
-        uri = uri .. urlEncode(param_key) .. "=" .. urlEncode(param_value) .. "&"
+        -- https://github.com/openresty/lua-nginx-module#ngxreqget_uri_args
+        -- Multiple occurrences of an argument key will result in a table value holding all the values for that key in order.
+        if type(param_value) == "table" then
+            for _, param_multi_value in ipairs(param_value) do
+                uri = uri .. urlEncode(param_key) .. "=" .. urlEncode(param_multi_value) .. "&"
+            end
+        else
+            uri = uri .. urlEncode(param_key) .. "=" .. urlEncode(param_value) .. "&"
+        end
     end
     --remove the last "&" from the signedHeaders
     uri = string.sub(uri, 1, -2)

@@ -11,7 +11,7 @@ use Cwd qw(cwd);
 
 repeat_each(1);
 
-plan tests => repeat_each() * (blocks() * 4)-3;
+plan tests => repeat_each() * blocks() * 3;
 
 my $pwd = cwd();
 
@@ -279,4 +279,46 @@ key=KEY, secret=SECRET, token=TOKEN, date=\\d+-\\d+-\\d+T\\d+:\\d+:\\d+Z, timest
 X-Test: test
 
 
+=== TEST 4: test read ECS task role credentials
+--- http_config eval: $::HttpConfig
+--- config
+        error_log ../awsIamCredentials_test4_error.log debug;
 
+        location = /v2/credentials/task-credential-id {
+            # No "Code" field in JSON response
+            return 200 '{
+                            "AccessKeyId": "KEY",
+                            "Expiration": "2019-08-17T00:31:06Z",
+                            "RoleArn": "ARN",
+                            "SecretAccessKey": "SECRET",
+                            "Token": "TOKEN"
+                        }';
+        }
+
+        location /test {
+            content_by_lua '
+                local IamCredentials = require "api-gateway.aws.AWSIAMCredentials"
+                local iam = IamCredentials:new({
+                  security_credentials_host = "127.0.0.1",
+                  security_credentials_port = $TEST_NGINX_PORT,
+                  security_credentials_url = "/v2/credentials/task-credential-id",
+                  iam_user = ""
+                })
+
+                local success = iam:fetchSecurityCredentialsFromAWS()
+
+                ngx.say("Success=" .. tostring(success))
+            ';
+        }
+--- timeout: 20s
+--- more_headers
+X-Test: test
+--- request
+GET /test
+--- response_body_like eval
+["Success=true"]
+--- error_code: 200
+--- no_error_log
+[error]
+--- more_headers
+X-Test: test
